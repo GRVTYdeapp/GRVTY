@@ -698,7 +698,12 @@ input:focus, select:focus, textarea:focus {
     </button>
     <!-- Login status bericht -->
     <div id="loginMsg" style="font-size:12px;color:#5a6a8a;min-height:18px;"></div>
-    <div style="font-size:10px;color:#2a3a5a;letter-spacing:0.05em;">Gratis · Veilig · Geen spam</div>
+    <div style="border-top:1px solid #1e2d52;margin-top:16px;padding-top:16px;">
+      <button onclick="skipLogin()" style="width:100%;background:transparent;border:1px solid #1e2d52;color:#5a6a8a;padding:13px 20px;border-radius:14px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;">
+        Doorgaan zonder account →
+      </button>
+      <div style="font-size:10px;color:#2a3a5a;margin-top:8px;text-align:center;">Zonder account wordt data alleen lokaal opgeslagen</div>
+    </div>
   </div>
 </div>
 
@@ -891,6 +896,16 @@ input:focus, select:focus, textarea:focus {
       <div class="macro-target">gezond vet</div>
       <div class="macro-track"><div class="macro-fill fat" id="fFat" style="width:0%"></div></div>
     </div>
+  </div>
+
+  <!-- AI dagadvies balk -->
+  <div style="padding:10px 16px;background:#0a0f1e;border-bottom:1px solid #1e2d52;display:flex;gap:8px;">
+    <button onclick="getDagAdvies()" id="dagAdviesBtn" style="flex:1;background:rgba(0,229,255,0.07);border:1px solid rgba(0,229,255,0.2);color:#00e5ff;padding:10px 14px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;">
+      🤖 Wat eten voor de rest van de dag?
+    </button>
+    <button onclick="openMaaltijdGenerator()" style="background:rgba(0,201,123,0.07);border:1px solid rgba(0,201,123,0.2);color:#00c97b;padding:10px 14px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;white-space:nowrap;">
+      ✨ Genereer menu
+    </button>
   </div>
 
   <div class="layout">
@@ -1511,6 +1526,11 @@ input:focus, select:focus, textarea:focus {
       <span style="color:#a78bfa;font-size:16px;">→</span>
     </div>
 
+    <!-- AI Weekoverzicht -->
+    <button onclick="getWeekOverzicht()" style="width:100%;margin-top:14px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;padding:12px 16px;border-radius:12px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;">
+      🤖 Weekoverzicht — hoe staat het ervoor?
+    </button>
+
     <!-- Profile switcher mini -->
     <div style="margin-top:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <div id="profielList" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
@@ -1965,6 +1985,9 @@ input:focus, select:focus, textarea:focus {
         🏋️ Sessie builder
       </button>
     </div>
+    <button onclick="getTrainingAnalyse()" style="width:100%;margin-top:8px;background:rgba(255,140,66,0.08);border:1px solid rgba(255,140,66,0.2);color:#ff8c42;padding:10px 12px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;">
+      🤖 Hoe gaat mijn training?
+    </button>
   </div>
 
   <div class="training-screen" style="max-width:640px;margin:0 auto;">
@@ -4189,28 +4212,22 @@ async function analyseSchema() {
   }
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('/api/ai', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: `Analyseer dit trainingsschema en geef het terug als JSON. Geef ALLEEN het JSON object terug, geen uitleg of markdown.
+        prompt: `Analyseer dit trainingsschema en geef het terug als JSON. Geef ALLEEN het JSON object terug, geen uitleg of markdown.
 
 Schema:
 ${schemaText}
 
 Formaat:
-{"naam":"naam sessie","type":"cali|kracht|cardio|stretch|hiit|muaythai|overig","exercises":[{"name":"oefening","sets":"3x10","detail":"uitleg"}]}`
-        }]
+{"naam":"naam sessie","type":"cali|kracht|cardio|stretch|hiit|muaythai|overig","exercises":[{"name":"oefening","sets":"3x10","detail":"uitleg"}]}`,
+        max_tokens: 1500
       })
     });
     const data = await resp.json();
-    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    const text = data.text || '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Geen schema herkend in de tekst');
     const schema = JSON.parse(jsonMatch[0]);
@@ -7571,25 +7588,17 @@ async function estimateSessionKcal() {
     : (session ? session.exercises.map(e => e.name + ' ' + e.sets).join(', ') : sessionName);
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/ai', {
       method: 'POST',
-      headers: {
-          'Content-Type': 'application/json',
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 100,
         system: 'Je bent een sport- en voedingsexpert. Geef ALLEEN een JSON object terug: {"kcal":350}. Geen uitleg, geen markdown.',
-        messages: [{
-          role: 'user',
-          content: `Schat het kcal verbruik voor een man van ${p.weight}kg, leeftijd ${p.age} jaar. Training: ${sessionName}. Oefeningen: ${exList}. Geef ALLEEN {"kcal":getal} terug.`
-        }]
+        prompt: `Schat het kcal verbruik voor een man van ${p.weight}kg, leeftijd ${p.age} jaar. Training: ${sessionName}. Oefeningen: ${exList}. Geef ALLEEN {"kcal":getal} terug.`,
+        max_tokens: 100
       })
     });
     const data = await response.json();
-    const text = data.content?.[0]?.text || '';
+    const text = data.text || '';
     const cleaned = text.replace(/```json|```/g, '').trim();
     const result = JSON.parse(cleaned);
     document.getElementById('exSessionKcal').value = result.kcal || '';
@@ -8176,25 +8185,17 @@ async function sbEstimateKcal(evt) {
     : name;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/ai', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 100,
         system: 'Je bent een sport- en voedingsexpert. Geef ALLEEN een JSON object terug: {"kcal":350}. Geen uitleg.',
-        messages: [{
-          role: 'user',
-          content: 'Schat kcal verbruik voor man van ' + p.weight + 'kg, ' + p.age + ' jaar. Sessie: ' + (name || 'training') + '. Oefeningen: ' + exList + '. Geef ALLEEN {"kcal":getal} terug.'
-        }]
+        prompt: 'Schat kcal verbruik voor man van ' + p.weight + 'kg, ' + p.age + ' jaar. Sessie: ' + (name || 'training') + '. Oefeningen: ' + exList + '. Geef ALLEEN {"kcal":getal} terug.',
+        max_tokens: 100
       })
     });
     const data = await response.json();
-    const text = (data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim();
+    const text = (data.text || '{}').replace(/```json|```/g, '').trim();
     const result = JSON.parse(text);
     document.getElementById('sbKcal').value = result.kcal || '';
     if (status) { status.textContent = '✓ Schatting: ~' + (result.kcal || '?') + ' kcal'; status.style.color = 'var(--green)'; }
@@ -8331,9 +8332,34 @@ function saveToStorage() {
       weekTrainingOverrides,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    syncToSupabase(data);
   } catch(e) {
     console.warn('Opslaan mislukt:', e);
   }
+}
+
+async function syncToSupabase(data) {
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (!session) return;
+    await _supabase.from('user_data').upsert({
+      user_id: session.user.id,
+      data: data,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('Cloud sync mislukt:', e); }
+}
+
+async function loadFromSupabase() {
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (!session) return false;
+    const { data, error } = await _supabase.from('user_data').select('data').eq('user_id', session.user.id).single();
+    if (error || !data) return false;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data.data));
+    loadFromStorage();
+    return true;
+  } catch(e) { console.warn('Cloud laden mislukt:', e); return false; }
 }
 
 function exportData() {
@@ -8801,23 +8827,15 @@ Herken de ingrediënten en pas het recept aan zodat het past als ${slotLabels[rs
 Geef ALLEEN dit JSON terug, geen uitleg of markdown:
 {"naam":"naam gerecht","kcal":getal,"eiwit":getal,"koolhydraten":getal,"vet":getal,"beschrijving":"korte 1-zin","ingredienten":[{"naam":"ingredient","hoeveelheid":"200g","status":"ongewijzigd|verminderd|vervangen|nieuw|verwijderd"}],"wijzigingen":"max 3 zinnen uitleg"}`;
 
-    const apiResp = await fetch('https://api.anthropic.com/v1/messages', {
+    const apiResp = await fetch('/api/ai', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, max_tokens: 1000 })
     });
 
     const apiData = await apiResp.json();
     if (!apiResp.ok) throw new Error(apiData.error?.message || 'API fout ' + apiResp.status);
-    const respText = apiData.content?.find(b => b.type === 'text')?.text || '';
+    const respText = apiData.text || '';
     const jsonMatch = respText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Geen JSON in antwoord');
     rsCurrentResult = JSON.parse(jsonMatch[0]);
@@ -9972,9 +9990,8 @@ if (isIOS && !isStandalone) {
 }
 
 // ===== SUPABASE AUTH =====
-// Vervang deze twee waarden met jouw eigen Supabase project URL en anon key
-const SUPABASE_URL = https://fwottjulsafptgsrlojz.supabase.co;
-const SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3b3R0anVsc2FmcHRnc3Jsb2p6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTg5MzEsImV4cCI6MjA5MTIzNDkzMX0.Cn5c0mTKbfTgdwf-xS-T9Eq1eOkmdNsnI4qtBfsdhkU;
+const SUPABASE_URL = 'https://fwottjulsafptgsrlojz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3b3R0anVsc2FmcHRnc3Jsb2p6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTg5MzEsImV4cCI6MjA5MTIzNDkzMX0.Cn5c0mTKbfTgdwf-xS-T9Eq1eOkmdNsnI4qtBfsdhkU';
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -10012,11 +10029,12 @@ async function loginWithGoogle() {
   msg.textContent = 'Verbinden met Google...';
   msg.style.color = '#00e5ff';
 
+  const prodUrl = window.location.hostname === 'localhost'
+    ? 'https://grvty-git-main-skycatcherproductions-3428s-projects.vercel.app/'
+    : window.location.origin + '/';
   const { error } = await _supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: window.location.href
-    }
+    options: { redirectTo: prodUrl }
   });
 
   if (error) {
@@ -10056,7 +10074,147 @@ function onLoggedIn() {
       }
     }
   }
+  loadFromSupabase().then(loaded => {
+    if (loaded) { renderAll(); showToast('☁️ Data gesynchroniseerd vanuit cloud'); }
+  });
   checkOnboarding();
+}
+
+function skipLogin() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  checkOnboarding();
+}
+
+function renderAll() {
+  try { renderPlannerScreen(); } catch(e) {}
+  try { renderTrainingScreen(); } catch(e) {}
+  try { renderWeightScreen(); } catch(e) {}
+  try { renderProfileScreen(); } catch(e) {}
+}
+
+// ===== AI FEATURES =====
+
+function showAiModal(title, color, content) {
+  const existing = document.getElementById('aiResultModal');
+  if (existing) existing.remove();
+  const m = document.createElement('div');
+  m.id = 'aiResultModal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);display:flex;align-items:flex-end;justify-content:center;';
+  m.innerHTML = `
+    <div style="background:#0f1629;border:1px solid ${color}33;border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:80vh;overflow-y:auto;padding:20px 20px 36px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:800;color:${color};">${title}</div>
+        <button onclick="document.getElementById('aiResultModal').remove()" style="background:rgba(255,255,255,0.07);border:none;color:#b8c4e0;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;">×</button>
+      </div>
+      <div style="font-size:14px;color:#e8edf8;line-height:1.7;white-space:pre-wrap;">${content}</div>
+    </div>`;
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+  document.body.appendChild(m);
+}
+
+async function getDagAdvies() {
+  const btn = document.getElementById('dagAdviesBtn');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '⏳ Even nadenken...'; btn.disabled = true;
+  try {
+    const p = getActiveProfile();
+    const day = plan[currentDay] || {};
+    const slots = { ontbijt:'Ontbijt', lunch:'Lunch', snack:'Pre-training', avond:'Avondeten', asnack:'Avondsnack' };
+    let consumed = { kcal:0, prot:0 };
+    const gevuld = [], leeg = [];
+    for (const [key, label] of Object.entries(slots)) {
+      const m = day[key];
+      if (m) { consumed.kcal += m.kcal||0; consumed.prot += m.prot||0; gevuld.push(label); }
+      else leeg.push(label);
+    }
+    const prompt = `Je bent een Nederlandse voedingscoach. Geef concreet advies voor de rest van de dag.\n\nProfiel: ${p.weight||80}kg, doel: ${p.goalType==='cut'?'afvallen':'aankomen'}, strategie: ${p.strategy||'balanced'}\nDagdoel: ${p.kcalTarget||2000} kcal / ${p.protTarget||160}g eiwit\nAl gegeten: ${consumed.kcal} kcal / ${consumed.prot}g eiwit (${gevuld.join(', ')||'nog niets'})\nNog over: ${(p.kcalTarget||2000)-consumed.kcal} kcal / ${(p.protTarget||160)-consumed.prot}g eiwit\nLege momenten: ${leeg.join(', ')||'alle gevuld'}\n\nGeef max 3 concrete tips. Gebruik bulletpoints. Wees direct en praktisch.`;
+    const resp = await fetch('/api/ai', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt, max_tokens:400 }) });
+    const { text } = await resp.json();
+    showAiModal('🤖 Dagadvies', '#00e5ff', text);
+  } catch(e) { showToast('AI advies mislukt — probeer opnieuw'); }
+  btn.innerHTML = orig; btn.disabled = false;
+}
+
+async function getTrainingAnalyse() {
+  const btn = event?.target?.closest('button');
+  const orig = btn?.innerHTML || '';
+  if (btn) { btn.innerHTML = '⏳ Analyseren...'; btn.disabled = true; }
+  try {
+    const p = getActiveProfile();
+    const now = new Date();
+    let sessiesPerWeek = [0,0,0,0], totalKcal = 0, totalSessies = 0;
+    for (const [key, log] of Object.entries(trainingLogs||{})) {
+      const d = new Date(key.split('-').slice(0,3).join('-'));
+      const weekIdx = Math.floor((now-d)/604800000);
+      if (weekIdx < 4) { sessiesPerWeek[weekIdx]++; totalKcal += log.kcal||0; totalSessies++; }
+    }
+    const niveaus = Object.entries(sessionLevels||{}).map(([k,v]) => `${k}: niveau ${v+1}`).join(', ');
+    const prompt = `Je bent een Nederlandse personal trainer. Analyseer deze trainingsdata.\n\nProfiel: ${p.weight||80}kg, doel: ${p.goalType==='cut'?'afvallen':'spiermassa'}\nSessies afgelopen 4 weken: week 1: ${sessiesPerWeek[0]}x, week 2: ${sessiesPerWeek[1]}x, week 3: ${sessiesPerWeek[2]}x, week 4: ${sessiesPerWeek[3]}x\nSessieniveaus: ${niveaus||'geen data'}\nTotaal verbrand: ~${totalKcal} kcal in ${totalSessies} sessies\n\nGeef: 1) Korte analyse (1-2 zinnen) 2) Wat goed gaat 3) Concrete aanbeveling. Bulletpoints. Max 150 woorden.`;
+    const resp = await fetch('/api/ai', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt, max_tokens:400 }) });
+    const { text } = await resp.json();
+    showAiModal('🤖 Trainingsanalyse', '#ff8c42', text);
+  } catch(e) { showToast('Analyse mislukt — probeer opnieuw'); }
+  if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+}
+
+async function getWeekOverzicht() {
+  const btn = event?.target?.closest('button');
+  const orig = btn?.innerHTML || '';
+  if (btn) { btn.innerHTML = '⏳ Samenvatten...'; btn.disabled = true; }
+  try {
+    const p = getActiveProfile();
+    const now = new Date();
+    const weekLog = (weightLog||[]).filter(e => (now-new Date(e.date))/86400000 <= 7);
+    const gewichtStart = weekLog.length > 1 ? weekLog[0].weight : null;
+    const gewichtNu = weightLog?.length ? weightLog[weightLog.length-1].weight : p.weight;
+    const delta = gewichtStart ? (gewichtNu-gewichtStart).toFixed(1) : null;
+    let trainWeek = 0;
+    for (const key of Object.keys(trainingLogs||{})) {
+      if ((now-new Date(key.split('-').slice(0,3).join('-')))/86400000 <= 7) trainWeek++;
+    }
+    const prompt = `Je bent een Nederlandse coach. Geef een persoonlijk weekoverzicht.\n\nProfiel: ${p.name||'Gebruiker'}, ${p.weight||80}kg → doel ${p.goalWeight||75}kg (${p.goalType==='cut'?'afvallen':'aankomen'})\nGewicht: ${gewichtStart ? `${gewichtStart}kg → ${gewichtNu}kg (${delta>0?'+':''}${delta} kg)` : `${gewichtNu}kg`}\nTrainingen deze week: ${trainWeek}x\n\nGeef een kort persoonlijk weekoverzicht (max 120 woorden). Spreek de gebruiker aan met "je". Wees eerlijk maar positief.`;
+    const resp = await fetch('/api/ai', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt, max_tokens:350 }) });
+    const { text } = await resp.json();
+    showAiModal('🤖 Weekoverzicht', '#fbbf24', text);
+  } catch(e) { showToast('Weekoverzicht mislukt — probeer opnieuw'); }
+  if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+}
+
+function openMaaltijdGenerator() {
+  const existing = document.getElementById('maaltijdGenModal');
+  if (existing) existing.remove();
+  const p = getActiveProfile();
+  const m = document.createElement('div');
+  m.id = 'maaltijdGenModal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);display:flex;align-items:flex-end;justify-content:center;';
+  m.innerHTML = `
+    <div style="background:#0f1629;border:1px solid rgba(0,201,123,0.3);border-radius:20px 20px 0 0;width:100%;max-width:640px;padding:20px 20px 36px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:800;color:#00c97b;">✨ Dagmenu genereren</div>
+        <button onclick="document.getElementById('maaltijdGenModal').remove()" style="background:rgba(255,255,255,0.07);border:none;color:#b8c4e0;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;">×</button>
+      </div>
+      <div style="font-size:12px;color:#5a6a8a;margin-bottom:14px;">Doel: ${p.kcalTarget||2000} kcal / ${p.protTarget||160}g eiwit</div>
+      <textarea id="mgVoorkeur" placeholder="Voorkeuren (bijv. geen vis, simpel, budget-vriendelijk...)" style="width:100%;background:#1a2340;border:1px solid #1e2d52;color:#e8edf8;border-radius:10px;padding:12px;font-family:'Space Grotesk',sans-serif;font-size:13px;resize:none;height:80px;outline:none;"></textarea>
+      <button onclick="generateMaaltijdMenu()" id="mgBtn" style="width:100%;margin-top:12px;background:#00c97b;border:none;color:#0a0f1e;padding:14px;border-radius:12px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:800;">🍽️ Genereer volledig dagmenu</button>
+      <div id="mgResult" style="margin-top:14px;font-size:13px;color:#e8edf8;line-height:1.7;white-space:pre-wrap;display:none;"></div>
+    </div>`;
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+  document.body.appendChild(m);
+}
+
+async function generateMaaltijdMenu() {
+  const btn = document.getElementById('mgBtn');
+  const result = document.getElementById('mgResult');
+  const voorkeur = document.getElementById('mgVoorkeur').value.trim();
+  btn.innerHTML = '⏳ Menu samenstellen...'; btn.disabled = true;
+  try {
+    const p = getActiveProfile();
+    const prompt = `Je bent een Nederlandse voedingsdeskundige. Stel een volledig dagmenu samen.\n\nProfiel: ${p.weight||80}kg, ${p.age||25} jaar, doel: ${p.goalType==='cut'?'afvallen':'aankomen'}\nDagdoel: ${p.kcalTarget||2000} kcal / ${p.protTarget||160}g eiwit\nStrategie: ${p.strategy==='lowcarb'?'laag koolhydraten':'gebalanceerde macros'}\n${voorkeur?`Voorkeuren: ${voorkeur}`:''}\n\nGeef voor elk moment een concrete maaltijd met naam, ingrediënten en macros:\n• Ontbijt\n• Lunch\n• Pre-training snack\n• Avondeten\n• Avondsnack\n\nEindigt met totaal kcal en eiwit.`;
+    const resp = await fetch('/api/ai', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt, max_tokens:700 }) });
+    const { text } = await resp.json();
+    result.textContent = text; result.style.display = 'block';
+  } catch(e) { result.textContent = 'Mislukt — probeer opnieuw.'; result.style.display = 'block'; }
+  btn.innerHTML = '🔄 Genereer opnieuw'; btn.disabled = false;
 }
 
 // Start auth check zodra de pagina geladen is
