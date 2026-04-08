@@ -698,7 +698,12 @@ input:focus, select:focus, textarea:focus {
     </button>
     <!-- Login status bericht -->
     <div id="loginMsg" style="font-size:12px;color:#5a6a8a;min-height:18px;"></div>
-    <div style="font-size:10px;color:#2a3a5a;letter-spacing:0.05em;">Gratis · Veilig · Geen spam</div>
+    <div style="border-top:1px solid #1e2d52;margin-top:16px;padding-top:16px;">
+      <button onclick="skipLogin()" style="width:100%;background:transparent;border:1px solid #1e2d52;color:#5a6a8a;padding:13px 20px;border-radius:14px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;">
+        Doorgaan zonder account →
+      </button>
+      <div style="font-size:10px;color:#2a3a5a;margin-top:8px;text-align:center;">Zonder account wordt data alleen lokaal opgeslagen</div>
+    </div>
   </div>
 </div>
 
@@ -10024,6 +10029,11 @@ async function initAuth() {
       document.getElementById('loginOverlay').style.display = 'block';
     }
   });
+}
+
+function skipLogin() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  checkOnboarding();
 }
 
 async function loginWithGoogle() {
