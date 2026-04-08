@@ -10044,11 +10044,12 @@ async function loginWithGoogle() {
   msg.textContent = 'Verbinden met Google...';
   msg.style.color = '#00e5ff';
 
+  const prodUrl = window.location.hostname === 'localhost'
+    ? 'https://grvty-nuoenzmk7-skycatcherproductions-3428s-projects.vercel.app/'
+    : window.location.origin + '/';
   const { error } = await _supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: window.location.href
-    }
+    options: { redirectTo: prodUrl }
   });
 
   if (error) {
