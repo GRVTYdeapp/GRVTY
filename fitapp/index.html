@@ -3963,56 +3963,7 @@ function buildRepLogger(si, ei, numSets, setsStr, savedReps, exName, sessionType
 
 
 // ===== RUST TIMER =====
-const _restTimers = {}; // key -> { worker, startTime, totalSec, onComplete }
-
-// Web Worker code als inline blob — draait in aparte thread, pauzeert niet bij scherm uit (Android)
-const _timerWorkerCode = `
-self.timers = {};
-self.onmessage = function(e) {
-  const { action, id, totalSec, startTime } = e.data;
-  if (action === 'start') {
-    if (self.timers[id]) clearInterval(self.timers[id]);
-    self.timers[id] = setInterval(function() {
-      var rem = Math.max(0, totalSec - Math.floor((Date.now() - startTime) / 1000));
-      self.postMessage({ id: id, rem: rem });
-      if (rem <= 0) { clearInterval(self.timers[id]); delete self.timers[id]; }
-    }, 400);
-  } else if (action === 'stop') {
-    if (self.timers[id]) clearInterval(self.timers[id]);
-    delete self.timers[id];
-  }
-};
-`;
-let _timerWorker = null;
-function _getTimerWorker() {
-  if (_timerWorker) return _timerWorker;
-  try {
-    const blob = new Blob([_timerWorkerCode], { type: 'application/javascript' });
-    _timerWorker = new Worker(URL.createObjectURL(blob));
-    _timerWorker.onmessage = _onWorkerTick;
-    return _timerWorker;
-  } catch(e) { return null; }
-}
-
-function _onWorkerTick(e) {
-  const { id, rem } = e.data;
-  const t = _restTimers[id];
-  if (!t) return;
-  const displayEl = document.getElementById(id + '-display');
-  const skipEl    = document.getElementById(id + '-skip');
-  if (displayEl) {
-    const m = Math.floor(rem / 60), s = rem % 60;
-    displayEl.textContent = m > 0 ? m + ':' + String(s).padStart(2,'0') : s + 's';
-    displayEl.style.color = rem <= 3 && rem > 0 ? '#ff4d6a' : rem <= 10 ? '#fbbf24' : '#00e5ff';
-  }
-  // Countdown beeps
-  if (rem <= 3 && rem > 0 && rem !== t._lastBeep) {
-    t._lastBeep = rem;
-    playPrepBeep(rem === 1 ? 880 : 660);
-    try { navigator.vibrate?.([80]); } catch(e2) {}
-  }
-  if (rem <= 0) _restTimerFinish(id, displayEl, skipEl, t.onComplete);
-}
+const _restTimers = {}; // key -> { interval, startTime, totalSec, onComplete, _lastBeep }
 
 function adjRestTimer(key, delta) {
   const el = document.getElementById(key + '-setting');
@@ -4025,29 +3976,20 @@ function adjRestTimer(key, delta) {
 }
 
 function _restTimerFinish(key, displayEl, skipEl, onComplete) {
-  const t = _restTimers[key];
-  if (t?.worker) t.worker.postMessage({ action: 'stop', id: key });
+  if (_restTimers[key]?.interval) clearInterval(_restTimers[key].interval);
   delete _restTimers[key];
-  try { localStorage.removeItem('grvty_active_rest'); } catch(e) {}
-  // Cancel scheduled notification
-  try {
-    const nid = parseInt(localStorage.getItem('grvty_notif_' + key));
-    if (nid) clearTimeout(nid);
-    localStorage.removeItem('grvty_notif_' + key);
-  } catch(e) {}
   if (!displayEl) return;
   displayEl.textContent = '✓ Go!';
   displayEl.style.color = '#00c97b';
   if (skipEl) skipEl.style.display = 'none';
   playBoxingBell();
-  try { navigator.vibrate?.([300, 100, 300, 100, 300]); } catch(e) {}
+  try { navigator.vibrate?.([200, 100, 200]); } catch(e) {}
   if (typeof onComplete === 'function') setTimeout(onComplete, 600);
   setTimeout(() => { if (displayEl) { displayEl.style.display = 'none'; displayEl.textContent = ''; } }, 3000);
 }
 
 function startRestTimer(key, onComplete) {
-  // Stop existing
-  if (_restTimers[key]?.worker) _restTimers[key].worker.postMessage({ action: 'stop', id: key });
+  if (_restTimers[key]?.interval) clearInterval(_restTimers[key].interval);
 
   const settingEl = document.getElementById(key + '-setting');
   const displayEl = document.getElementById(key + '-display');
@@ -4057,90 +3999,26 @@ function startRestTimer(key, onComplete) {
   const sec = parseInt(settingEl.textContent) || 90;
   const startTime = Date.now();
 
-  // Save state so we can recover if page reloads
-  try { localStorage.setItem('grvty_active_rest', JSON.stringify({ key, sec, startTime })); } catch(e) {}
-
-  // Schedule native notification (fires even on iOS when app is closed)
-  _scheduleRestNotification(key, sec);
-
   displayEl.style.display = 'block';
   displayEl.style.color = '#00e5ff';
   displayEl.textContent = sec + 's';
   if (skipEl) skipEl.style.display = 'block';
 
-  const worker = _getTimerWorker();
-  if (worker) {
-    worker.postMessage({ action: 'start', id: key, totalSec: sec, startTime });
-  } else {
-    // Fallback: setInterval (for browsers without Worker support)
-    const iv = setInterval(() => {
-      const rem = Math.max(0, sec - Math.floor((Date.now() - startTime) / 1000));
-      _onWorkerTick({ data: { id: key, rem } });
-      if (rem <= 0) clearInterval(iv);
-    }, 400);
-    _restTimers[key] = { worker: { postMessage: () => clearInterval(iv) }, startTime, totalSec: sec, onComplete, _lastBeep: -1 };
-    return;
-  }
-  _restTimers[key] = { worker, startTime, totalSec: sec, onComplete, _lastBeep: -1 };
-}
-
-// Native push notification zodat de timer afspeelt ook als app dicht is
-function _scheduleRestNotification(key, sec) {
-  try {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'denied') return;
-    const fire = () => {
-      if (_restTimers[key]) return; // Timer al gestopt, geen notificatie nodig
-      new Notification('⏱ Rust klaar — Go!', {
-        body: 'Je rusttijd is voorbij. Start de volgende set!',
-        icon: '/icon-192.png',
-        tag: 'rest-timer',
-        requireInteraction: false,
-        silent: false,
-      });
-    };
-    const tid = setTimeout(fire, sec * 1000);
-    try { localStorage.setItem('grvty_notif_' + key, tid); } catch(e) {}
-    // Vraag toestemming als nog niet gegeven
-    if (Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  } catch(e) {}
-}
-
-// Herstel timer na terugkeer in de app (page uit bfcache of tab werd zichtbaar)
-function _checkRestoreRestTimer() {
-  try {
-    const saved = localStorage.getItem('grvty_active_rest');
-    if (!saved) return;
-    const { key, sec, startTime } = JSON.parse(saved);
-    if (_restTimers[key]) return; // al actief
+  const t = { interval: null, startTime, totalSec: sec, onComplete, _lastBeep: -1 };
+  t.interval = setInterval(() => {
     const rem = Math.max(0, sec - Math.floor((Date.now() - startTime) / 1000));
-    const displayEl = document.getElementById(key + '-display');
-    const skipEl    = document.getElementById(key + '-skip');
-    if (!displayEl) return;
-    if (rem <= 0) {
-      _restTimerFinish(key, displayEl, skipEl, null);
-    } else {
-      // Hervat worker met oorspronkelijke startTime (wall-clock correct)
-      displayEl.style.display = 'block';
-      displayEl.style.color = '#00e5ff';
-      if (skipEl) skipEl.style.display = 'block';
-      const worker = _getTimerWorker();
-      if (worker) {
-        worker.postMessage({ action: 'start', id: key, totalSec: sec, startTime });
-        _restTimers[key] = { worker, startTime, totalSec: sec, onComplete: null, _lastBeep: -1 };
-      }
+    const m = Math.floor(rem / 60), s = rem % 60;
+    displayEl.textContent = m > 0 ? m + ':' + String(s).padStart(2,'0') : s + 's';
+    displayEl.style.color = rem <= 3 && rem > 0 ? '#ff4d6a' : rem <= 10 ? '#fbbf24' : '#00e5ff';
+    if (rem <= 3 && rem > 0 && rem !== t._lastBeep) {
+      t._lastBeep = rem;
+      playPrepBeep(rem === 1 ? 880 : 660);
+      try { navigator.vibrate?.([80]); } catch(e) {}
     }
-  } catch(e) {}
+    if (rem <= 0) _restTimerFinish(key, displayEl, skipEl, onComplete);
+  }, 500);
+  _restTimers[key] = t;
 }
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') _checkRestoreRestTimer();
-});
-window.addEventListener('pageshow', (e) => {
-  if (e.persisted) _checkRestoreRestTimer();
-});
 
 function skipRestTimer(key) {
   if (_restTimers[key]?.interval) clearInterval(_restTimers[key].interval);
