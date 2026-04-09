@@ -2357,10 +2357,13 @@ input:focus, select:focus, textarea:focus {
     <div class="meal-sheet-title" id="mealSheetTitle">Kies een maaltijd</div>
     <button class="meal-sheet-close" onclick="closeMealSheet()">✕</button>
   </div>
-  <!-- Eigen maaltijd knop -->
-  <div style="padding:8px 14px;border-bottom:1px solid var(--border);">
-    <button type="button" onclick="closeMealSheet();openAddMealModal()" style="width:100%;background:rgba(0,229,255,0.08);border:1px dashed rgba(0,229,255,0.3);color:#00e5ff;padding:10px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;">
-      + Eigen maaltijd toevoegen
+  <!-- Eigen maaltijd + los ingredient knoppen -->
+  <div style="padding:8px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;">
+    <button type="button" onclick="closeMealSheet();openAddMealModal()" style="flex:1;background:rgba(0,229,255,0.08);border:1px dashed rgba(0,229,255,0.3);color:#00e5ff;padding:10px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;">
+      + Eigen maaltijd
+    </button>
+    <button type="button" onclick="openLooseIngredient()" style="flex:1;background:rgba(251,191,36,0.08);border:1px dashed rgba(251,191,36,0.3);color:#fbbf24;padding:10px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;">
+      🥩 Los ingredient
     </button>
   </div>
   <div class="meal-sheet-filters" id="mealSheetFilters"></div>
@@ -3973,11 +3976,28 @@ function adjRestTimer(key, delta) {
   try { localStorage.setItem('grvty_rest_' + exName, next); } catch(e) {}
 }
 
-function startRestTimer(key, onComplete) {
-  // Cancel existing
-  if (_restTimers[key]?.interval) {
+function _restTimerFinish(key, displayEl, skipEl, onComplete) {
+  if (_restTimers[key]) {
     clearInterval(_restTimers[key].interval);
+    _restTimers[key].interval = null;
   }
+  try { localStorage.removeItem('grvty_active_rest'); } catch(e) {}
+  if (!displayEl) return;
+  displayEl.textContent = '✓ Go!';
+  displayEl.style.color = '#00c97b';
+  if (skipEl) skipEl.style.display = 'none';
+  playBoxingBell();
+  try { navigator.vibrate?.([200, 100, 200]); } catch(e) {}
+  if (typeof onComplete === 'function') setTimeout(onComplete, 600);
+  setTimeout(() => {
+    if (displayEl) { displayEl.style.display = 'none'; displayEl.textContent = ''; }
+  }, 3000);
+}
+
+function startRestTimer(key, onComplete) {
+  // Cancel any existing timer for this key
+  if (_restTimers[key]?.interval) clearInterval(_restTimers[key].interval);
+
   const settingEl = document.getElementById(key + '-setting');
   const displayEl = document.getElementById(key + '-display');
   const skipEl    = document.getElementById(key + '-skip');
@@ -3986,87 +4006,101 @@ function startRestTimer(key, onComplete) {
   const sec = parseInt(settingEl.textContent) || 90;
   const startTime = Date.now();
 
+  // Persist timer state in localStorage so we survive app backgrounding
+  try {
+    localStorage.setItem('grvty_active_rest', JSON.stringify({ key, sec, startTime }));
+  } catch(e) {}
+
   displayEl.style.display = 'block';
-  displayEl.style.color = '#00e5ff';
   if (skipEl) skipEl.style.display = 'block';
 
-  const updateDisplay = (remaining) => {
-    const m = Math.floor(remaining / 60);
-    const s = remaining % 60;
+  const updateDisplay = (rem) => {
+    const m = Math.floor(rem / 60);
+    const s = rem % 60;
     displayEl.textContent = m > 0 ? m + ':' + String(s).padStart(2,'0') : s + 's';
-    if (remaining <= 3 && remaining > 0) displayEl.style.color = '#ff4d6a';
-    else if (remaining <= 10) displayEl.style.color = '#fbbf24';
+    if (rem <= 3 && rem > 0) displayEl.style.color = '#ff4d6a';
+    else if (rem <= 10) displayEl.style.color = '#fbbf24';
     else displayEl.style.color = '#00e5ff';
   };
 
-  const finishTimer = () => {
-    if (_restTimers[key]) {
-      clearInterval(_restTimers[key].interval);
-      _restTimers[key].interval = null;
-    }
-    displayEl.textContent = '✓ Go!';
-    displayEl.style.color = '#00c97b';
-    if (skipEl) skipEl.style.display = 'none';
-    // Use boxing bell sound (same as exercise timer)
-    playBoxingBell();
-    try { navigator.vibrate?.([200, 100, 200]); } catch(e) {}
-    if (typeof onComplete === 'function') setTimeout(onComplete, 600);
-    setTimeout(() => {
-      if (displayEl) { displayEl.style.display = 'none'; displayEl.textContent = ''; }
-    }, 3000);
-  };
-
-  let remaining = sec;
   let lastBeepAt = -1;
-  updateDisplay(remaining);
+  updateDisplay(sec);
 
-  _restTimers[key] = {
-    interval: setInterval(() => {
-      remaining = Math.max(0, sec - Math.floor((Date.now() - startTime) / 1000));
-      updateDisplay(remaining);
-      // Countdown beeps at 3, 2, 1 seconds remaining
-      if (remaining <= 3 && remaining > 0 && remaining !== lastBeepAt) {
-        lastBeepAt = remaining;
-        playPrepBeep(remaining === 1 ? 880 : 660);
-        try { navigator.vibrate?.([80]); } catch(e) {}
-      }
-      if (remaining <= 0) {
-        finishTimer();
-      }
-    }, 1000),
-    remaining,
-    totalSec: sec,
-    startTime,
-    onComplete,
-    finishTimer
-  };
+  const interval = setInterval(() => {
+    const rem = Math.max(0, sec - Math.floor((Date.now() - startTime) / 1000));
+    updateDisplay(rem);
+    if (rem <= 3 && rem > 0 && rem !== lastBeepAt) {
+      lastBeepAt = rem;
+      playPrepBeep(rem === 1 ? 880 : 660);
+      try { navigator.vibrate?.([80]); } catch(e) {}
+    }
+    if (rem <= 0) _restTimerFinish(key, displayEl, skipEl, onComplete);
+  }, 500); // poll every 500ms for responsiveness
+
+  _restTimers[key] = { interval, totalSec: sec, startTime, onComplete };
 }
 
-// Visibility change: recalculate rest timers when returning to app (Feature 3)
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return;
-  for (const [key, t] of Object.entries(_restTimers)) {
-    if (!t?.interval || !t.startTime) continue;
-    const elapsed = Math.floor((Date.now() - t.startTime) / 1000);
-    const newRem = Math.max(0, t.totalSec - elapsed);
-    t.remaining = newRem;
-    const displayEl = document.getElementById(key + '-display');
-    const skipEl = document.getElementById(key + '-skip');
-    if (!displayEl) continue;
-    if (newRem <= 0) {
-      t.finishTimer ? t.finishTimer() : (() => {
-        clearInterval(t.interval);
-        t.interval = null;
-        displayEl.textContent = '✓ Go!';
-        displayEl.style.color = '#00c97b';
-        if (skipEl) skipEl.style.display = 'none';
-        playBoxingBell();
-        try { navigator.vibrate?.([200, 100, 200]); } catch(e) {}
-        if (typeof t.onComplete === 'function') setTimeout(t.onComplete, 600);
-        setTimeout(() => { if (displayEl) { displayEl.style.display = 'none'; displayEl.textContent = ''; } }, 3000);
-      })();
+// When app returns from background: restore rest timer from localStorage
+function _checkRestoreRestTimer() {
+  try {
+    const saved = localStorage.getItem('grvty_active_rest');
+    if (!saved) return;
+    const { key, sec, startTime } = JSON.parse(saved);
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const rem = Math.max(0, sec - elapsed);
+    // Only restore if timer is still running
+    if (!_restTimers[key] || !_restTimers[key].interval) {
+      const displayEl = document.getElementById(key + '-display');
+      const skipEl = document.getElementById(key + '-skip');
+      if (!displayEl) return;
+      if (rem <= 0) {
+        _restTimerFinish(key, displayEl, skipEl, null);
+      } else {
+        // Resume timer with remaining time
+        startRestTimerWithRem(key, rem, startTime, sec, null);
+      }
     }
-  }
+  } catch(e) {}
+}
+
+function startRestTimerWithRem(key, remSec, origStartTime, totalSec, onComplete) {
+  if (_restTimers[key]?.interval) clearInterval(_restTimers[key].interval);
+  const displayEl = document.getElementById(key + '-display');
+  const skipEl    = document.getElementById(key + '-skip');
+  if (!displayEl) return;
+  displayEl.style.display = 'block';
+  if (skipEl) skipEl.style.display = 'block';
+
+  const updateDisplay = (rem) => {
+    const m = Math.floor(rem / 60);
+    const s = rem % 60;
+    displayEl.textContent = m > 0 ? m + ':' + String(s).padStart(2,'0') : s + 's';
+    if (rem <= 3 && rem > 0) displayEl.style.color = '#ff4d6a';
+    else if (rem <= 10) displayEl.style.color = '#fbbf24';
+    else displayEl.style.color = '#00e5ff';
+  };
+
+  let lastBeepAt = -1;
+  updateDisplay(remSec);
+  const interval = setInterval(() => {
+    const rem = Math.max(0, totalSec - Math.floor((Date.now() - origStartTime) / 1000));
+    updateDisplay(rem);
+    if (rem <= 3 && rem > 0 && rem !== lastBeepAt) {
+      lastBeepAt = rem;
+      playPrepBeep(rem === 1 ? 880 : 660);
+      try { navigator.vibrate?.([80]); } catch(e) {}
+    }
+    if (rem <= 0) _restTimerFinish(key, displayEl, skipEl, onComplete);
+  }, 500);
+  _restTimers[key] = { interval, totalSec, startTime: origStartTime, onComplete };
+}
+
+// Listen for app returning from background (both visibilitychange and pageshow)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') _checkRestoreRestTimer();
+});
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) _checkRestoreRestTimer(); // bfcache restore on iOS
 });
 
 function skipRestTimer(key) {
