@@ -581,8 +581,8 @@ body {
 .cheat-del:hover { color:var(--red); }
 
 /* ===== TOAST ===== */
-#toast { position:fixed; bottom:88px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--card); border:1px solid var(--border); color:var(--text); padding:12px 22px; border-radius:40px; font-size:13px; font-weight:700; font-family:'Space Grotesk',sans-serif; opacity:0; pointer-events:none; z-index:500; transition:all 0.3s; white-space:nowrap; box-shadow:0 8px 32px rgba(0,0,0,0.5); }
-#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+#toast { position:fixed; bottom:88px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--card); border:1px solid var(--border); color:var(--text); padding:12px 22px; border-radius:40px; font-size:13px; font-weight:700; font-family:'Space Grotesk',sans-serif; opacity:0; pointer-events:none; z-index:500; transition:all 0.3s; white-space:nowrap; box-shadow:0 8px 32px rgba(0,0,0,0.5); cursor:pointer; }
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
 #toast.success { border-color:var(--success); color:var(--success); }
 #toast.error { border-color:var(--red); color:var(--red); }
 
@@ -841,7 +841,7 @@ input:focus, select:focus, textarea:focus {
   <div style="background:linear-gradient(135deg,#0a1628 0%,#0d2040 50%,#0a1628 100%);padding:18px 18px 14px;border-bottom:1px solid rgba(0,229,255,0.15);position:relative;overflow:hidden;">
     <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(0,229,255,0.07) 0%,transparent 70%);pointer-events:none;"></div>
     <div class="header-eyebrow">Meal Planner</div>
-    <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;line-height:1.1;margin-bottom:14px;">89 kg <span style="color:#00e5ff;">→ 80 kg</span></h1>
+    <h1 id="plannerHeroWeight" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;line-height:1.1;margin-bottom:14px;">— kg <span style="color:#00e5ff;">→ — kg</span></h1>
 
     <!-- Recept scanner knop -->
     <button onclick="openRecipeScan()" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);color:#a78bfa;padding:9px 14px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;transition:all 0.2s;">
@@ -850,8 +850,9 @@ input:focus, select:focus, textarea:focus {
   </div>
 
   <!-- Dag tabs -->
-  <div style="padding:12px 16px;border-bottom:1px solid #1e2d52;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;background:#0a0f1e;">
-    <div id="dayTabs" style="display:flex;gap:6px;"></div>
+  <div style="padding:12px 16px;border-bottom:1px solid #1e2d52;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;background:#0a0f1e;align-items:center;">
+    <div id="dayTabs" style="display:flex;gap:6px;flex:1;"></div>
+    <button onclick="copyPreviousDay()" title="Kopieer vorige dag" style="flex-shrink:0;background:rgba(90,106,138,0.12);border:1px solid #1e2d52;color:#5a6a8a;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.color='#b8c4e0';this.style.borderColor='#243460'" onmouseout="this.style.color='#5a6a8a';this.style.borderColor='#1e2d52'">↙ Kopieer</button>
   </div>
 
   <!-- Macro balk -->
@@ -1948,6 +1949,20 @@ input:focus, select:focus, textarea:focus {
     <button onclick="getTrainingAnalyse()" style="width:100%;margin-top:8px;background:rgba(255,140,66,0.08);border:1px solid rgba(255,140,66,0.2);color:#ff8c42;padding:10px 12px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;">
       🤖 Hoe gaat mijn training?
     </button>
+    <!-- Workout stopwatch -->
+    <div id="workoutStopwatch" style="display:none;margin-top:10px;background:rgba(0,201,123,0.07);border:1px solid rgba(0,201,123,0.25);border-radius:12px;padding:10px 14px;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:16px;">⏱</span>
+        <div>
+          <div style="font-size:10px;color:#5a6a8a;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">Trainingsduur</div>
+          <div id="workoutStopwatchDisplay" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#00c97b;line-height:1;">0:00</div>
+        </div>
+      </div>
+      <button onclick="stopWorkoutStopwatch()" style="background:rgba(255,77,106,0.12);border:1px solid rgba(255,77,106,0.3);color:#ff4d6a;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;">■ Stop</button>
+    </div>
+    <div id="workoutStartBtn" style="display:none;margin-top:10px;">
+      <button onclick="startWorkoutStopwatch()" style="width:100%;background:rgba(0,201,123,0.07);border:1px solid rgba(0,201,123,0.2);color:#00c97b;padding:10px 12px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;">▶ Start timer</button>
+    </div>
   </div>
 
   <div class="training-screen" style="max-width:640px;margin:0 auto;">
@@ -2228,7 +2243,10 @@ input:focus, select:focus, textarea:focus {
       </div>
 
       <!-- INGREDIËNTEN -->
-      <div style="font-family:Syne,sans-serif;font-size:12px;font-weight:700;color:var(--accent);padding-bottom:8px;border-bottom:1px solid var(--border);">Ingrediënten</div>
+      <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        <div style="font-family:Syne,sans-serif;font-size:12px;font-weight:700;color:var(--accent);">Ingrediënten</div>
+        <span id="cmIngCount" style="display:none;background:rgba(0,229,255,0.15);color:#00e5ff;font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;"></span>
+      </div>
       <div id="cmIngredientList" style="display:flex;flex-direction:column;gap:6px;"></div>
 
       <!-- Smart ingredient search -->
@@ -2307,7 +2325,14 @@ input:focus, select:focus, textarea:focus {
       <button class="modal-confirm" onclick="saveCustomMeal()">Toevoegen</button>
       <button class="modal-cancel" onclick="closeAddMealModal()">Annuleren</button>
     </div>
-    <div id="cmCustomList" style="margin-top:14px;display:flex;flex-direction:column;gap:6px;"></div>
+    <div style="margin-top:14px;">
+      <div style="position:relative;margin-bottom:8px;" id="cmSearchWrap" style="display:none;">
+        <input type="search" id="cmCustomSearch" placeholder="🔍 Zoek eigen maaltijden..." oninput="renderCmCustomList()"
+          style="width:100%;padding:9px 12px 9px 34px;background:#1a2340;border:1px solid #1e2d52;color:#e8edf8;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:13px;box-sizing:border-box;outline:none;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#5a6a8a;font-size:14px;pointer-events:none;">🔍</span>
+      </div>
+      <div id="cmCustomList" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
   </div>
 </div>
 
@@ -2729,12 +2754,36 @@ let currentDay=0, activeFilter='ontbijt';
 let plan=DAYS.map(()=>({ontbijt:null,lunch:null,snack:null,avond:null,asnack:null}));
 let weightLog=[];
 
+// ===== SESSION DRAFT (Feature 7) =====
+let sessionDraft = {};
+(function loadSessionDraft() {
+  try {
+    const raw = localStorage.getItem('grvty_session_draft');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    const savedDate = new Date(data._date || 0);
+    if ((Date.now() - savedDate) < 7 * 86400000) sessionDraft = data;
+    else { sessionDraft = {}; localStorage.removeItem('grvty_session_draft'); }
+  } catch(e) { sessionDraft = {}; }
+})();
+function saveSessionDraftEntry(exName, setIdx, type, val) {
+  if (!exName) return;
+  if (!sessionDraft[exName]) sessionDraft[exName] = {};
+  if (!sessionDraft[exName][setIdx]) sessionDraft[exName][setIdx] = {};
+  if (val !== undefined && val !== null && val !== '') sessionDraft[exName][setIdx][type] = val;
+  else delete sessionDraft[exName][setIdx][type];
+  sessionDraft._date = new Date().toISOString().split('T')[0];
+  try { localStorage.setItem('grvty_session_draft', JSON.stringify(sessionDraft)); } catch(e) {}
+}
+
 function showScreen(name,btn){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   if(btn && btn.classList) btn.classList.add('active');
   if(name==='gewicht'||name==='voortgang') setTimeout(drawChart,60);
+  if(name==='training') setTimeout(showWorkoutStopwatchUI, 50);
+  try { localStorage.setItem('grvty_screen', name); } catch(e) {}
 }
 
 function showBoodschappen() {
@@ -3021,6 +3070,24 @@ function closeMealSheet() {
   document.getElementById('mealSheetOverlay').classList.remove('open');
 }
 function clearSlot(s){plan[currentDay][s]=null;renderPlan();renderMealList();updateMacros();}
+function copyPreviousDay(){
+  const prevDay = currentDay === 0 ? 6 : currentDay - 1;
+  const prev = plan[prevDay];
+  const cur = plan[currentDay];
+  const slots = ['ontbijt','lunch','snack','avond','asnack'];
+  let copied = 0;
+  slots.forEach(s => { if (prev[s] && !cur[s]) { cur[s] = {...prev[s]}; copied++; } });
+  if (copied === 0) {
+    // If all slots are already filled, ask and overwrite
+    const hasAny = slots.some(s => prev[s]);
+    if (!hasAny) { showToast('Vorige dag heeft geen maaltijden'); return; }
+    slots.forEach(s => { if (prev[s]) { cur[s] = {...prev[s]}; copied++; } });
+    showToast(copied + ' maaltijden overschreven van ' + DAYS[prevDay]);
+  } else {
+    showToast(copied + ' maaltijden gekopieerd van ' + DAYS[prevDay] + ' ✓');
+  }
+  renderPlan(); renderMealList(); updateMacros(); saveToStorage();
+}
 function resetDay(){
   plan[currentDay]={ontbijt:null,lunch:null,snack:null,avond:null,asnack:null};
   renderPlan();renderMealList();updateMacros();showToast('Dag gereset');
@@ -3109,11 +3176,14 @@ function logWeight(){
 function deleteEntry(date){weightLog=weightLog.filter(e=>e.date!==date);updateWeightUI();drawChart();}
 function clearHistory(){weightLog=[];updateWeightUI();drawChart();showToast('Historie gewist');}
 
+let _toastTimeout = null;
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'show' + (type ? ' ' + type : '');
-  setTimeout(() => t.className = '', 2200);
+  if (_toastTimeout) clearTimeout(_toastTimeout);
+  _toastTimeout = setTimeout(() => { t.className = ''; _toastTimeout = null; }, 2200);
+  t.onclick = () => { t.className = ''; if (_toastTimeout) { clearTimeout(_toastTimeout); _toastTimeout = null; } };
 }
 
 // ===== TRAINING DATA =====
@@ -3778,6 +3848,7 @@ function buildRepLogger(si, ei, numSets, setsStr, savedReps, exName, sessionType
     else targetSec = 30;
 
     const timerId = `timer-${si}-${ei}`;
+    const isPerKant = /per\s*(kant|zijde)/i.test(setsStr);
 
     // Per-set: timer knop + invoerveld voor werkelijke tijd
     const setBlocks = Array.from({length: numSets}, (_, s) => {
@@ -3787,7 +3858,7 @@ function buildRepLogger(si, ei, numSets, setsStr, savedReps, exName, sessionType
       const isPR = val && lastVal && Number(val) > Number(lastVal);
       return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #1e2d52;">
         <button class="timer-set-btn ${done ? 'done-set' : ''}" id="${timerId}-set-${s}"
-          onclick="timerStartSet('${timerId}',${s},${targetSec},${si},${ei},${numSets})"
+          onclick="timerStartSet('${timerId}',${s},${targetSec},${si},${ei},${numSets},${isPerKant})"
           style="flex-shrink:0;">
           Set ${s+1}${done ? ' ✓' : ''}
           ${lastVal && !done ? `<div style="font-size:9px;color:var(--muted);font-weight:400;">${lastVal}s</div>` : ''}
@@ -3823,7 +3894,7 @@ function buildRepLogger(si, ei, numSets, setsStr, savedReps, exName, sessionType
           <span style="font-size:11px;color:#5a6a8a;font-weight:700;">⏱ Rust:</span>
           <div style="display:flex;align-items:center;gap:4px;">
             <button type="button" onclick="adjRestTimer('rest-${si}-${ei}',-15)" style="background:#1a2340;border:1px solid #1e2d52;color:#b8c4e0;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;">−</button>
-            <span id="rest-${si}-${ei}-setting" style="font-size:14px;font-weight:700;color:#e8edf8;min-width:40px;text-align:center;">${parseInt(localStorage.getItem('grvty_rest_rest-${si}-${ei}') || '90')}s</span>
+            <span id="rest-${si}-${ei}-setting" data-exname="${exName||'default'}" style="font-size:14px;font-weight:700;color:#e8edf8;min-width:40px;text-align:center;">${parseInt(localStorage.getItem('grvty_rest_' + (exName||'default')) || '90')}s</span>
             <button type="button" onclick="adjRestTimer('rest-${si}-${ei}',15)" style="background:#1a2340;border:1px solid #1e2d52;color:#b8c4e0;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;">+</button>
           </div>
           <div id="rest-${si}-${ei}-display" style="display:none;font-size:18px;font-weight:800;color:#00e5ff;min-width:50px;text-align:center;"></div>
@@ -3876,7 +3947,7 @@ function buildRepLogger(si, ei, numSets, setsStr, savedReps, exName, sessionType
         <span style="font-size:11px;color:#5a6a8a;font-weight:700;">⏱ Rust:</span>
         <div style="display:flex;align-items:center;gap:4px;">
           <button type="button" onclick="adjRestTimer('${restKey}',-15)" style="background:#1a2340;border:1px solid #1e2d52;color:#b8c4e0;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;">−</button>
-          <span id="${restKey}-setting" style="font-size:14px;font-weight:700;color:#e8edf8;min-width:40px;text-align:center;">${savedRestSec}s</span>
+          <span id="${restKey}-setting" data-exname="${exName||'default'}" style="font-size:14px;font-weight:700;color:#e8edf8;min-width:40px;text-align:center;">${savedRestSec}s</span>
           <button type="button" onclick="adjRestTimer('${restKey}',15)" style="background:#1a2340;border:1px solid #1e2d52;color:#b8c4e0;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;">+</button>
         </div>
         <div id="${restKey}-display" style="display:none;font-size:18px;font-weight:800;color:#00e5ff;min-width:50px;text-align:center;"></div>
@@ -3896,12 +3967,12 @@ function adjRestTimer(key, delta) {
   const cur = parseInt(el.textContent) || 90;
   const next = Math.max(15, Math.min(300, cur + delta));
   el.textContent = next + 's';
-  // Save per exercise
-  const exName = key; // key is rest-si-ei, close enough for storage
-  try { localStorage.setItem('grvty_rest_' + key, next); } catch(e) {}
+  // Save per exercise name (from data-exname attribute)
+  const exName = el.dataset.exname || key;
+  try { localStorage.setItem('grvty_rest_' + exName, next); } catch(e) {}
 }
 
-function startRestTimer(key) {
+function startRestTimer(key, onComplete) {
   // Cancel existing
   if (_restTimers[key]?.interval) {
     clearInterval(_restTimers[key].interval);
@@ -3912,57 +3983,90 @@ function startRestTimer(key) {
   if (!settingEl || !displayEl) return;
 
   const sec = parseInt(settingEl.textContent) || 90;
-  let remaining = sec;
+  const startTime = Date.now();
 
   displayEl.style.display = 'block';
   displayEl.style.color = '#00e5ff';
   if (skipEl) skipEl.style.display = 'block';
 
-  const update = () => {
+  const updateDisplay = (remaining) => {
     const m = Math.floor(remaining / 60);
     const s = remaining % 60;
     displayEl.textContent = m > 0 ? m + ':' + String(s).padStart(2,'0') : s + 's';
-    if (remaining <= 5) displayEl.style.color = '#ff4d6a';
-    else if (remaining <= 15) displayEl.style.color = '#fbbf24';
+    if (remaining <= 3 && remaining > 0) displayEl.style.color = '#ff4d6a';
+    else if (remaining <= 10) displayEl.style.color = '#fbbf24';
     else displayEl.style.color = '#00e5ff';
   };
-  update();
+
+  const finishTimer = () => {
+    if (_restTimers[key]) {
+      clearInterval(_restTimers[key].interval);
+      _restTimers[key].interval = null;
+    }
+    displayEl.textContent = '✓ Go!';
+    displayEl.style.color = '#00c97b';
+    if (skipEl) skipEl.style.display = 'none';
+    // Use boxing bell sound (same as exercise timer)
+    playBoxingBell();
+    try { navigator.vibrate?.([200, 100, 200]); } catch(e) {}
+    if (typeof onComplete === 'function') setTimeout(onComplete, 600);
+    setTimeout(() => {
+      if (displayEl) { displayEl.style.display = 'none'; displayEl.textContent = ''; }
+    }, 3000);
+  };
+
+  let remaining = sec;
+  let lastBeepAt = -1;
+  updateDisplay(remaining);
 
   _restTimers[key] = {
     interval: setInterval(() => {
-      remaining--;
-      update();
+      remaining = Math.max(0, sec - Math.floor((Date.now() - startTime) / 1000));
+      updateDisplay(remaining);
+      // Countdown beeps at 3, 2, 1 seconds remaining
+      if (remaining <= 3 && remaining > 0 && remaining !== lastBeepAt) {
+        lastBeepAt = remaining;
+        playPrepBeep(remaining === 1 ? 880 : 660);
+        try { navigator.vibrate?.([80]); } catch(e) {}
+      }
       if (remaining <= 0) {
-        clearInterval(_restTimers[key].interval);
-        _restTimers[key].interval = null;
+        finishTimer();
+      }
+    }, 1000),
+    remaining,
+    totalSec: sec,
+    startTime,
+    onComplete,
+    finishTimer
+  };
+}
+
+// Visibility change: recalculate rest timers when returning to app (Feature 3)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  for (const [key, t] of Object.entries(_restTimers)) {
+    if (!t?.interval || !t.startTime) continue;
+    const elapsed = Math.floor((Date.now() - t.startTime) / 1000);
+    const newRem = Math.max(0, t.totalSec - elapsed);
+    t.remaining = newRem;
+    const displayEl = document.getElementById(key + '-display');
+    const skipEl = document.getElementById(key + '-skip');
+    if (!displayEl) continue;
+    if (newRem <= 0) {
+      t.finishTimer ? t.finishTimer() : (() => {
+        clearInterval(t.interval);
+        t.interval = null;
         displayEl.textContent = '✓ Go!';
         displayEl.style.color = '#00c97b';
         if (skipEl) skipEl.style.display = 'none';
-        // Vibrate
+        playBoxingBell();
         try { navigator.vibrate?.([200, 100, 200]); } catch(e) {}
-        // Sound — 3 beeps using Web Audio API
-        try {
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-          [0, 0.25, 0.5].forEach(offset => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.type = 'sine';
-            osc.frequency.value = offset === 0.5 ? 880 : 660;
-            gain.gain.setValueAtTime(0.4, ctx.currentTime + offset);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.2);
-            osc.start(ctx.currentTime + offset);
-            osc.stop(ctx.currentTime + offset + 0.2);
-          });
-        } catch(e) {}
-        setTimeout(() => {
-          if (displayEl) { displayEl.style.display = 'none'; displayEl.textContent = ''; }
-        }, 3000);
-      }
-    }, 1000),
-    remaining
-  };
-}
+        if (typeof t.onComplete === 'function') setTimeout(t.onComplete, 600);
+        setTimeout(() => { if (displayEl) { displayEl.style.display = 'none'; displayEl.textContent = ''; } }, 3000);
+      })();
+    }
+  }
+});
 
 function skipRestTimer(key) {
   if (_restTimers[key]?.interval) clearInterval(_restTimers[key].interval);
@@ -4002,6 +4106,8 @@ function onRepInput(input, si, ei, s) {
     input.classList.remove('filled');
     if (tick) tick.classList.remove('done');
   }
+  const exName = input.dataset.exname;
+  if (exName) saveSessionDraftEntry(exName, s, 'reps', val);
 }
 
 function onWeightInput(input, si, ei, s) {
@@ -4471,6 +4577,56 @@ function renderProgressChart() {
 }
 let pendingAlertData = null;
 
+// ===== WORKOUT STOPWATCH =====
+let _workoutStopwatch = null; // { startTime, interval }
+
+function startWorkoutStopwatch() {
+  if (_workoutStopwatch) return; // already running
+  const startTime = Date.now();
+  const display = document.getElementById('workoutStopwatchDisplay');
+  const swEl    = document.getElementById('workoutStopwatch');
+  const startBtn = document.getElementById('workoutStartBtn');
+  if (swEl) swEl.style.display = 'flex';
+  if (startBtn) startBtn.style.display = 'none';
+
+  function updateSW() {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const m = Math.floor(elapsed / 60);
+    const s = elapsed % 60;
+    if (display) display.textContent = m + ':' + String(s).padStart(2,'0');
+  }
+  updateSW();
+  const interval = setInterval(updateSW, 1000);
+  _workoutStopwatch = { startTime, interval };
+}
+
+function stopWorkoutStopwatch() {
+  if (!_workoutStopwatch) return;
+  clearInterval(_workoutStopwatch.interval);
+  const elapsed = Math.floor((Date.now() - _workoutStopwatch.startTime) / 1000);
+  _workoutStopwatch = null;
+  const swEl = document.getElementById('workoutStopwatch');
+  const startBtn = document.getElementById('workoutStartBtn');
+  if (swEl) swEl.style.display = 'none';
+  if (startBtn) startBtn.style.display = 'block';
+  const m = Math.floor(elapsed / 60);
+  const s = elapsed % 60;
+  showToast('Training: ' + m + 'min ' + s + 's 💪');
+}
+
+function showWorkoutStopwatchUI() {
+  const swEl = document.getElementById('workoutStopwatch');
+  const startBtn = document.getElementById('workoutStartBtn');
+  if (!swEl || !startBtn) return;
+  if (_workoutStopwatch) {
+    swEl.style.display = 'flex';
+    startBtn.style.display = 'none';
+  } else {
+    swEl.style.display = 'none';
+    startBtn.style.display = 'block';
+  }
+}
+
 // ===== SET TIMER =====
 let _activeTimer = null;
 
@@ -4565,7 +4721,7 @@ function timerStop() {
   }
 }
 
-function timerStartSet(timerId, setIdx, targetSec, si, ei, numSets) {
+function timerStartSet(timerId, setIdx, targetSec, si, ei, numSets, isPerKant) {
   unlockAudio();
   timerStop();
   const display = document.getElementById(timerId + '-display');
@@ -4579,69 +4735,87 @@ function timerStartSet(timerId, setIdx, targetSec, si, ei, numSets) {
   });
   if (stopBtn) stopBtn.style.display = 'block';
 
-  let prep = 5;
-  timerEl.className = 'set-timer prep';
-  display.className = 'timer-display prep';
-  label.textContent = 'Voorbereiding...';
-  display.textContent = prep;
-  playPrepBeep(500);
-
-  const prepInterval = setInterval(() => {
-    prep--;
-    if (prep <= 0) {
-      clearInterval(prepInterval);
-      if (!_activeTimer) return;
-      playPrepBeep(880);
-      startRun();
-    } else {
-      display.textContent = prep;
-      playPrepBeep(440);
-    }
-  }, 1000);
-  _activeTimer = { interval: prepInterval, timerId, targetSec };
-
-  function startRun() {
-    let rem = targetSec;
-    timerEl.className = 'set-timer running';
-    display.className = 'timer-display running';
-    display.style.color = '';
-    label.textContent = 'GO!';
-    display.textContent = rem;
+  function finishSet() {
+    _activeTimer = null;
+    timerEl.className = 'set-timer done';
+    display.style.color = 'var(--green)';
+    label.textContent = 'Klaar! Set ' + (setIdx + 1);
+    if (stopBtn) stopBtn.style.display = 'none';
     playBoxingBell();
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    // Log the time
+    let inp = document.getElementById('rep-' + si + '-' + ei + '-' + setIdx);
+    if (!inp) {
+      inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.id = 'rep-' + si + '-' + ei + '-' + setIdx;
+      inp.className = 'rep-input';
+      timerEl.parentElement.appendChild(inp);
+    }
+    inp.value = targetSec;
+    const btn = document.getElementById(timerId + '-set-' + setIdx);
+    if (btn) { btn.className = 'timer-set-btn done-set'; btn.textContent = 'Set ' + (setIdx + 1) + ' ✓'; }
+    // Auto-start rest timer, then auto-start next set
+    const restKey = 'rest-' + si + '-' + ei;
+    const nextSetIdx = setIdx + 1;
+    startRestTimer(restKey, nextSetIdx < numSets ? () => timerStartSet(timerId, nextSetIdx, targetSec, si, ei, numSets, isPerKant) : null);
+  }
 
-    const interval = setInterval(() => {
-      if (!_activeTimer) { clearInterval(interval); return; }
-      rem--;
-      display.textContent = rem;
-      if (rem > 0 && rem <= 3) playPrepBeep(700);
-      if (rem <= 0) {
-        clearInterval(interval);
-        _activeTimer = null;
-        timerEl.className = 'set-timer done';
-        display.style.color = 'var(--green)';
-        label.textContent = 'Klaar! Set ' + (setIdx + 1);
-        if (stopBtn) stopBtn.style.display = 'none';
+  function runSide(sideNum) {
+    let rem = targetSec;
+    let prep = 5;
+    timerEl.className = 'set-timer prep';
+    display.className = 'timer-display prep';
+    display.style.color = '';
+    label.textContent = sideNum === 1 ? 'Voorbereiding...' : 'Wissel van kant — voorbereiding...';
+    display.textContent = prep;
+    playPrepBeep(500);
+
+    const prepI = setInterval(() => {
+      prep--;
+      if (prep <= 0) {
+        clearInterval(prepI);
+        if (!_activeTimer) return;
+        playPrepBeep(880);
+        // Start run phase
+        timerEl.className = 'set-timer running';
+        display.className = 'timer-display running';
+        display.style.color = '';
+        label.textContent = isPerKant ? (sideNum === 1 ? 'GO! — Kant 1' : 'GO! — Kant 2') : 'GO!';
+        display.textContent = rem;
         playBoxingBell();
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        // Log the time
-        let inp = document.getElementById('rep-' + si + '-' + ei + '-' + setIdx);
-        if (!inp) {
-          inp = document.createElement('input');
-          inp.type = 'hidden';
-          inp.id = 'rep-' + si + '-' + ei + '-' + setIdx;
-          inp.className = 'rep-input';
-          timerEl.parentElement.appendChild(inp);
-        }
-        inp.value = targetSec;
-        const btn = document.getElementById(timerId + '-set-' + setIdx);
-        if (btn) { btn.className = 'timer-set-btn done-set'; btn.textContent = 'Set ' + (setIdx + 1) + ' ✓'; }
-        // Auto-start rest timer for this exercise
-        const restKey = 'rest-' + si + '-' + ei;
-        startRestTimer(restKey);
+
+        const runI = setInterval(() => {
+          if (!_activeTimer) { clearInterval(runI); return; }
+          rem--;
+          display.textContent = rem;
+          if (rem > 0 && rem <= 3) playPrepBeep(700);
+          if (rem <= 0) {
+            clearInterval(runI);
+            if (sideNum === 1 && isPerKant) {
+              // Transition to side 2
+              label.textContent = 'Wissel van kant!';
+              display.textContent = '↔';
+              display.style.color = '#fbbf24';
+              playBoxingBell();
+              try { navigator.vibrate?.([200, 100, 200]); } catch(e) {}
+              _activeTimer = { interval: null, timerId, targetSec };
+              setTimeout(() => { if (_activeTimer) runSide(2); }, 1200);
+            } else {
+              finishSet();
+            }
+          }
+        }, 1000);
+        _activeTimer = { interval: runI, timerId, targetSec };
+      } else {
+        display.textContent = prep;
+        playPrepBeep(440);
       }
     }, 1000);
-    _activeTimer = { interval, timerId, targetSec };
+    _activeTimer = { interval: prepI, timerId, targetSec };
   }
+
+  runSide(1);
 }
 
 function openAlertModal(sessionIdx, date, sessionName, sessionTime) {
@@ -6083,6 +6257,11 @@ function updateMacros(){
     }
   }
   document.getElementById('mProtTarget').textContent='doel: '+p.protTarget+'g';
+  // Update planner hero with live profile weight/goal
+  const heroEl = document.getElementById('plannerHeroWeight');
+  if (heroEl && p.weight && p.goalWeight) {
+    heroEl.innerHTML = p.weight + ' kg <span style="color:#00e5ff;">→ ' + p.goalWeight + ' kg</span>';
+  }
 }
 
 function drawChart(){
@@ -6879,6 +7058,47 @@ const ING_DB = [
   {n:'Kokosmelk',       cat:'droog',  kcal:230, prot:2.3, carb:6,   fat:24},
   {n:'Tomatenpuree',    cat:'droog',  kcal:82,  prot:4.3, carb:19,  fat:0.5},
   {n:'Tomatenblokjes',  cat:'droog',  kcal:18,  prot:1,   carb:3.5, fat:0.2},
+
+  // Eiwitproducten & supplementen
+  {n:'Creatine',            cat:'droog',  kcal:0,   prot:0,   carb:0,   fat:0},
+  {n:'Caseine eiwit',       cat:'droog',  kcal:370, prot:78,  carb:5,   fat:3},
+  {n:'Mass gainer',         cat:'droog',  kcal:400, prot:30,  carb:60,  fat:5},
+  {n:'BCAA poeder',         cat:'droog',  kcal:100, prot:20,  carb:2,   fat:0},
+  {n:'Collageen poeder',    cat:'droog',  kcal:360, prot:90,  carb:0,   fat:0},
+
+  // Sauzen & condimenten
+  {n:'Ketchup',             cat:'droog',  kcal:100, prot:1.5, carb:27,  fat:0.1},
+  {n:'Mayonaise',           cat:'droog',  kcal:680, prot:1.2, carb:0.5, fat:75},
+  {n:'Mayonaise (light)',   cat:'droog',  kcal:270, prot:0.6, carb:8,   fat:26},
+  {n:'Mosterd',             cat:'droog',  kcal:66,  prot:4.4, carb:6,   fat:3},
+  {n:'Tabasco',             cat:'droog',  kcal:12,  prot:0.5, carb:2,   fat:0.2},
+  {n:'Worcestershire sauce',cat:'droog',  kcal:78,  prot:2.8, carb:20,  fat:0.1},
+  {n:'Sriracha',            cat:'droog',  kcal:93,  prot:2,   carb:19,  fat:1},
+  {n:'Balsamicoazijn',      cat:'droog',  kcal:88,  prot:0.5, carb:17,  fat:0},
+  {n:'Olijfolie extra vierge',cat:'droog',kcal:884, prot:0,   carb:0,   fat:100},
+  {n:'Sesamolie',           cat:'droog',  kcal:884, prot:0,   carb:0,   fat:100},
+  {n:'Bouillonblokje',      cat:'droog',  kcal:36,  prot:0.5, carb:6,   fat:1},
+
+  // Kruiden & specerijen
+  {n:'Kaneel',              cat:'droog',  kcal:247, prot:4,   carb:81,  fat:1.2},
+  {n:'Kurkuma',             cat:'droog',  kcal:312, prot:9.7, carb:67,  fat:3.3},
+  {n:'Paprikapoeder',       cat:'droog',  kcal:282, prot:14,  carb:54,  fat:13},
+  {n:'Knoflookpoeder',      cat:'droog',  kcal:331, prot:17,  carb:73,  fat:0.5},
+  {n:'Komijnzaad',          cat:'droog',  kcal:375, prot:18,  carb:44,  fat:22},
+  {n:'Oregano (gedroogd)',   cat:'droog',  kcal:265, prot:9,   carb:69,  fat:4.3},
+  {n:'Basilicum (gedroogd)', cat:'droog',  kcal:233, prot:23,  carb:61,  fat:4},
+  {n:'Zout',                cat:'droog',  kcal:0,   prot:0,   carb:0,   fat:0},
+  {n:'Peper (zwart)',        cat:'droog',  kcal:251, prot:10,  carb:64,  fat:3.3},
+  {n:'Chiliflakes',          cat:'droog',  kcal:282, prot:12,  carb:57,  fat:15},
+
+  // Dranken
+  {n:'Koffie (zwart)',       cat:'droog',  kcal:1,   prot:0.1, carb:0,   fat:0},
+  {n:'Groene thee',          cat:'droog',  kcal:1,   prot:0.2, carb:0.1, fat:0},
+  {n:'Sinaasappelsap',       cat:'droog',  kcal:45,  prot:0.7, carb:10,  fat:0.2},
+  {n:'Amandelmelk',          cat:'zuivel', kcal:24,  prot:0.6, carb:3,   fat:1.1},
+  {n:'Sojamelk',             cat:'zuivel', kcal:33,  prot:3.3, carb:1.6, fat:1.8},
+  {n:'Havermelk',            cat:'droog',  kcal:47,  prot:1,   carb:9,   fat:1.5},
+  {n:'Eiwitdrank (ready)',   cat:'droog',  kcal:60,  prot:10,  carb:3,   fat:1},
 ];
 
 // Currently selected ingredient from DB
@@ -7116,6 +7336,16 @@ function renderIngredientList() {
   const catIcons = { vlees:'🥩', groente:'🥦', fruit:'🍓', zuivel:'🧀', droog:'🫙' };
   const el = document.getElementById('cmIngredientList');
   if (!el) return;
+  // Update count badge
+  const countBadge = document.getElementById('cmIngCount');
+  if (countBadge) {
+    if (cmIngredients.length > 0) {
+      countBadge.textContent = cmIngredients.length + ' ingrediënt' + (cmIngredients.length !== 1 ? 'en' : '');
+      countBadge.style.display = 'inline-block';
+    } else {
+      countBadge.style.display = 'none';
+    }
+  }
   if (cmIngredients.length === 0) {
     el.innerHTML = '<div style="font-size:11px;color:var(--border);padding:4px 0;">Nog geen ingrediënten toegevoegd</div>';
     return;
@@ -7382,9 +7612,19 @@ function renderCmCustomList() {
   );
   const listEl = document.getElementById('cmCustomList');
   if (!listEl) return;
+  // Show/hide search bar
+  const searchWrap = document.getElementById('cmSearchWrap');
+  if (searchWrap) searchWrap.style.display = all.length >= 3 ? 'block' : 'none';
   if (all.length === 0) { listEl.innerHTML = ''; return; }
-  listEl.innerHTML = `<div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Jouw eigen maaltijden</div>` +
-    all.map(m => `<div style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+  // Apply search filter
+  const q = (document.getElementById('cmCustomSearch')?.value || '').toLowerCase().trim();
+  const filtered = q ? all.filter(m => (m.name||'').toLowerCase().includes(q) || (CATEGORIES[m.slot]||'').toLowerCase().includes(q)) : all;
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px 0;">Geen maaltijden gevonden voor "' + q + '"</div>';
+    return;
+  }
+  listEl.innerHTML = `<div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Jouw eigen maaltijden (${filtered.length}${q ? ' van ' + all.length : ''})</div>` +
+    filtered.map(m => `<div style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:700;color:#e8edf8;">${m.name}</div>
         <div style="font-size:11px;color:#5a6a8a;margin-top:2px;">${CATEGORIES[m.slot] || m.slot} · ${m.kcal} kcal · E${m.prot}g K${m.carb}g V${m.fat}g</div>
@@ -8510,6 +8750,13 @@ function closeOnboarding() {
 function checkOnboarding() {
   if (!hasRealProfile()) {
     document.getElementById('onboardingOverlay').style.display = 'block';
+    return;
+  }
+  const _lastScreen = localStorage.getItem('grvty_screen');
+  const _screenMap = ['planner','training','voortgang','weekplan','profiel'];
+  if (_lastScreen && _screenMap.includes(_lastScreen)) {
+    const _tabIdx = _screenMap.indexOf(_lastScreen);
+    showScreen(_lastScreen, document.querySelectorAll('.nav-tab')[_tabIdx] || null);
   }
 }
 
