@@ -3962,6 +3962,37 @@ function buildRepLogger(si, ei, numSets, setsStr, savedReps, exName, sessionType
 }
 
 
+// ===== WAKE LOCK: scherm aan houden tijdens timers =====
+let _wakeLock = null;
+let _wakeLockUsers = 0; // teller: hoeveel timers zijn actief
+
+async function _wakeLockAcquire() {
+  _wakeLockUsers++;
+  if (_wakeLock) return; // al actief
+  try {
+    if ('wakeLock' in navigator) {
+      _wakeLock = await navigator.wakeLock.request('screen');
+      _wakeLock.addEventListener('release', () => { _wakeLock = null; });
+    }
+  } catch(e) {}
+}
+
+function _wakeLockRelease() {
+  _wakeLockUsers = Math.max(0, _wakeLockUsers - 1);
+  if (_wakeLockUsers > 0) return; // andere timers nog actief
+  if (_wakeLock) {
+    try { _wakeLock.release(); } catch(e) {}
+    _wakeLock = null;
+  }
+}
+
+// Herverwerf wake lock als pagina weer zichtbaar wordt (bijv. na lock screen)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && _wakeLockUsers > 0 && !_wakeLock) {
+    _wakeLockAcquire();
+  }
+});
+
 // ===== RUST TIMER =====
 const _restTimers = {}; // key -> { interval, startTime, totalSec, onComplete, _lastBeep }
 
@@ -3978,6 +4009,7 @@ function adjRestTimer(key, delta) {
 function _restTimerFinish(key, displayEl, skipEl, onComplete) {
   if (_restTimers[key]?.interval) clearInterval(_restTimers[key].interval);
   delete _restTimers[key];
+  _wakeLockRelease();
   if (!displayEl) return;
   displayEl.textContent = '✓ Go!';
   displayEl.style.color = '#00c97b';
@@ -3995,6 +4027,8 @@ function startRestTimer(key, onComplete) {
   const displayEl = document.getElementById(key + '-display');
   const skipEl    = document.getElementById(key + '-skip');
   if (!settingEl || !displayEl) return;
+
+  _wakeLockAcquire(); // scherm aan houden
 
   const sec = parseInt(settingEl.textContent) || 90;
   const startTime = Date.now();
@@ -4022,6 +4056,7 @@ function startRestTimer(key, onComplete) {
 
 function skipRestTimer(key) {
   if (_restTimers[key]?.interval) clearInterval(_restTimers[key].interval);
+  _wakeLockRelease();
   _restTimers[key] = null;
   const displayEl = document.getElementById(key + '-display');
   const skipEl    = document.getElementById(key + '-skip');
@@ -4658,6 +4693,7 @@ function playPrepBeep(freq) {
 function timerStop() {
   if (_activeTimer) {
     clearInterval(_activeTimer.interval);
+    _wakeLockRelease();
     const tid = _activeTimer.timerId;
     const originalSec = _activeTimer.targetSec;
     _activeTimer = null;
@@ -4676,6 +4712,7 @@ function timerStop() {
 function timerStartSet(timerId, setIdx, targetSec, si, ei, numSets, isPerKant) {
   unlockAudio();
   timerStop();
+  _wakeLockAcquire(); // scherm aan houden tijdens oefening
   const display = document.getElementById(timerId + '-display');
   const label   = document.getElementById(timerId + '-label');
   const timerEl = document.getElementById(timerId);
