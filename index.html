@@ -843,25 +843,9 @@ input:focus, select:focus, textarea:focus {
     <div class="header-eyebrow">Meal Planner</div>
     <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;line-height:1.1;margin-bottom:14px;">89 kg <span style="color:#00e5ff;">→ 80 kg</span></h1>
 
-    <!-- Upload naar weekplanner - prominent -->
-    <div style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-      <div>
-        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:800;color:#e8edf8;">📅 Plan je week vooruit</div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px;">Sla vandaag of de hele week op in de weekplanner</div>
-      </div>
-      <div style="display:flex;gap:8px;flex-shrink:0;">
-        <button onclick="copyDayToWeekplan()" style="background:#00e5ff;border:none;color:#0a0f1e;padding:9px 16px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:800;white-space:nowrap;box-shadow:0 3px 12px rgba(0,229,255,0.3);">↑ Deze dag</button>
-        <button onclick="copyWeekToWeekplan()" style="background:#00c97b;border:none;color:#0a0f1e;padding:9px 16px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:800;white-space:nowrap;box-shadow:0 3px 12px rgba(0,201,123,0.3);">↑ Hele week</button>
-      </div>
-    </div>
-
     <!-- Recept scanner knop -->
-    <button onclick="openRecipeScan()" style="width:100%;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);color:#a78bfa;padding:12px 16px;border-radius:12px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s;">
-      <span style="font-size:20px;">📸</span>
-      <div style="text-align:left;">
-        <div>Recept Scanner — Foto → AI past macros aan</div>
-        <div style="font-size:10px;font-weight:400;color:rgba(167,139,250,0.7);margin-top:1px;">Maak een foto van elk recept en krijg een aangepaste versie</div>
-      </div>
+    <button onclick="openRecipeScan()" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);color:#a78bfa;padding:9px 14px;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;transition:all 0.2s;">
+      <span>📸</span> Recept Scanner
     </button>
   </div>
 
@@ -1539,30 +1523,6 @@ input:focus, select:focus, textarea:focus {
   </div>
 
   <div style="padding:16px;max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:14px;">
-
-    <!-- Data backup & herstel -->
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
-      <div style="background:var(--card2);border-bottom:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:18px;">☁️</span>
-        <div>
-          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;">Data back-up</div>
-          <div style="font-size:11px;color:#5a6a8a;margin-top:1px;">Export & importeer al je data</div>
-        </div>
-      </div>
-      <div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
-        <div style="font-size:12px;color:#5a6a8a;line-height:1.5;">Exporteer al je data als bestand. Bij herinstallatie of nieuw toestel laad je het bestand terug in — al je gewicht, trainingen, maaltijden en check-ins zijn dan meteen hersteld.</div>
-        <div style="display:flex;gap:10px;">
-          <button type="button" onclick="exportData()" style="flex:1;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.3);color:#00e5ff;padding:13px;border-radius:12px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:800;">
-            ⬇️ Exporteren
-          </button>
-          <button type="button" onclick="document.getElementById('importFileInput').click()" style="flex:1;background:rgba(0,201,123,0.1);border:1px solid rgba(0,201,123,0.3);color:#00c97b;padding:13px;border-radius:12px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:800;">
-            ⬆️ Importeren
-          </button>
-        </div>
-        <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importData(this)">
-        <div id="importStatus" style="font-size:12px;color:#00c97b;font-weight:700;text-align:center;min-height:16px;"></div>
-      </div>
-    </div>
 
     <!-- Basis gegevens -->
     <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
@@ -10129,9 +10089,10 @@ async function getDagAdvies() {
     }
     const prompt = `Je bent een Nederlandse voedingscoach. Geef concreet advies voor de rest van de dag.\n\nProfiel: ${p.weight||80}kg, doel: ${p.goalType==='cut'?'afvallen':'aankomen'}, strategie: ${p.strategy||'balanced'}\nDagdoel: ${p.kcalTarget||2000} kcal / ${p.protTarget||160}g eiwit\nAl gegeten: ${consumed.kcal} kcal / ${consumed.prot}g eiwit (${gevuld.join(', ')||'nog niets'})\nNog over: ${(p.kcalTarget||2000)-consumed.kcal} kcal / ${(p.protTarget||160)-consumed.prot}g eiwit\nLege momenten: ${leeg.join(', ')||'alle gevuld'}\n\nGeef max 3 concrete tips. Gebruik bulletpoints. Wees direct en praktisch.`;
     const resp = await fetch('/api/ai', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt, max_tokens:400 }) });
-    const { text } = await resp.json();
-    showAiModal('🤖 Dagadvies', '#00e5ff', text);
-  } catch(e) { showToast('AI advies mislukt — probeer opnieuw'); }
+    const json = await resp.json();
+    if (!resp.ok) throw new Error(json.error || 'API fout');
+    showAiModal('🤖 Dagadvies', '#00e5ff', json.text);
+  } catch(e) { showAiModal('🤖 Dagadvies', '#ff4d6a', '❌ ' + (e.message || 'Kon geen advies ophalen. Controleer of ANTHROPIC_API_KEY is ingesteld in Vercel.')); }
   btn.innerHTML = orig; btn.disabled = false;
 }
 
@@ -10151,9 +10112,10 @@ async function getTrainingAnalyse() {
     const niveaus = Object.entries(sessionLevels||{}).map(([k,v]) => `${k}: niveau ${v+1}`).join(', ');
     const prompt = `Je bent een Nederlandse personal trainer. Analyseer deze trainingsdata.\n\nProfiel: ${p.weight||80}kg, doel: ${p.goalType==='cut'?'afvallen':'spiermassa'}\nSessies afgelopen 4 weken: week 1: ${sessiesPerWeek[0]}x, week 2: ${sessiesPerWeek[1]}x, week 3: ${sessiesPerWeek[2]}x, week 4: ${sessiesPerWeek[3]}x\nSessieniveaus: ${niveaus||'geen data'}\nTotaal verbrand: ~${totalKcal} kcal in ${totalSessies} sessies\n\nGeef: 1) Korte analyse (1-2 zinnen) 2) Wat goed gaat 3) Concrete aanbeveling. Bulletpoints. Max 150 woorden.`;
     const resp = await fetch('/api/ai', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt, max_tokens:400 }) });
-    const { text } = await resp.json();
-    showAiModal('🤖 Trainingsanalyse', '#ff8c42', text);
-  } catch(e) { showToast('Analyse mislukt — probeer opnieuw'); }
+    const json = await resp.json();
+    if (!resp.ok) throw new Error(json.error || 'API fout');
+    showAiModal('🤖 Trainingsanalyse', '#ff8c42', json.text);
+  } catch(e) { showAiModal('🤖 Trainingsanalyse', '#ff4d6a', '❌ ' + (e.message || 'Analyse mislukt. Controleer of ANTHROPIC_API_KEY is ingesteld in Vercel.')); }
   if (btn) { btn.innerHTML = orig; btn.disabled = false; }
 }
 
@@ -10174,9 +10136,10 @@ async function getWeekOverzicht() {
     }
     const prompt = `Je bent een Nederlandse coach. Geef een persoonlijk weekoverzicht.\n\nProfiel: ${p.name||'Gebruiker'}, ${p.weight||80}kg → doel ${p.goalWeight||75}kg (${p.goalType==='cut'?'afvallen':'aankomen'})\nGewicht: ${gewichtStart ? `${gewichtStart}kg → ${gewichtNu}kg (${delta>0?'+':''}${delta} kg)` : `${gewichtNu}kg`}\nTrainingen deze week: ${trainWeek}x\n\nGeef een kort persoonlijk weekoverzicht (max 120 woorden). Spreek de gebruiker aan met "je". Wees eerlijk maar positief.`;
     const resp = await fetch('/api/ai', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt, max_tokens:350 }) });
-    const { text } = await resp.json();
-    showAiModal('🤖 Weekoverzicht', '#fbbf24', text);
-  } catch(e) { showToast('Weekoverzicht mislukt — probeer opnieuw'); }
+    const json = await resp.json();
+    if (!resp.ok) throw new Error(json.error || 'API fout');
+    showAiModal('🤖 Weekoverzicht', '#fbbf24', json.text);
+  } catch(e) { showAiModal('🤖 Weekoverzicht', '#ff4d6a', '❌ ' + (e.message || 'Weekoverzicht mislukt. Controleer of ANTHROPIC_API_KEY is ingesteld in Vercel.')); }
   if (btn) { btn.innerHTML = orig; btn.disabled = false; }
 }
 
@@ -10211,9 +10174,10 @@ async function generateMaaltijdMenu() {
     const p = getActiveProfile();
     const prompt = `Je bent een Nederlandse voedingsdeskundige. Stel een volledig dagmenu samen.\n\nProfiel: ${p.weight||80}kg, ${p.age||25} jaar, doel: ${p.goalType==='cut'?'afvallen':'aankomen'}\nDagdoel: ${p.kcalTarget||2000} kcal / ${p.protTarget||160}g eiwit\nStrategie: ${p.strategy==='lowcarb'?'laag koolhydraten':'gebalanceerde macros'}\n${voorkeur?`Voorkeuren: ${voorkeur}`:''}\n\nGeef voor elk moment een concrete maaltijd met naam, ingrediënten en macros:\n• Ontbijt\n• Lunch\n• Pre-training snack\n• Avondeten\n• Avondsnack\n\nEindigt met totaal kcal en eiwit.`;
     const resp = await fetch('/api/ai', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt, max_tokens:700 }) });
-    const { text } = await resp.json();
-    result.textContent = text; result.style.display = 'block';
-  } catch(e) { result.textContent = 'Mislukt — probeer opnieuw.'; result.style.display = 'block'; }
+    const json = await resp.json();
+    if (!resp.ok) throw new Error(json.error || 'API fout');
+    result.textContent = json.text; result.style.display = 'block';
+  } catch(e) { result.textContent = '❌ ' + (e.message || 'Mislukt — controleer of ANTHROPIC_API_KEY is ingesteld in Vercel.'); result.style.display = 'block'; }
   btn.innerHTML = '🔄 Genereer opnieuw'; btn.disabled = false;
 }
 
