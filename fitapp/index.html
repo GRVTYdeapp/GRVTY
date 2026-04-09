@@ -909,6 +909,7 @@ input:focus, select:focus, textarea:focus {
         <div class="day-info" id="dayInfo">Kies een moment</div>
         <div style="display:flex;gap:6px;align-items:center;">
           <button class="reset-btn" style="border-color:rgba(0,229,255,0.4);color:#00e5ff;flex:1;text-align:center;" onclick="openRecipeScan()">📸 Recept scanner</button>
+          <button class="reset-btn" style="border-color:rgba(251,191,36,0.4);color:#fbbf24;" onclick="openLooseIngredient()">🥩 Ingredient</button>
           <button class="reset-btn" onclick="toggleEtenTools(this)" id="etenToolsBtn" title="Meer opties">⋯</button>
         </div>
         <div id="etenToolsMenu" style="display:none;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
@@ -10514,6 +10515,91 @@ Eindigt met een totaaltelling van kcal en eiwit. Houd het realistisch en lekker.
   }
   btn.innerHTML = '🔄 Genereer opnieuw';
   btn.disabled = false;
+}
+
+// ===== LOS INGREDIENT TOEVOEGEN =====
+function openLooseIngredient() {
+  let modal = document.getElementById('looseIngModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'looseIngModal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:flex-end;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:#0f1629;border-radius:20px 20px 0 0;border-top:1px solid #1e2d52;width:100%;max-width:640px;padding:20px 20px 40px;max-height:80vh;overflow-y:auto;box-sizing:border-box;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;color:#fbbf24;">🥩 Los ingrediënt toevoegen</div>
+          <button onclick="document.getElementById('looseIngModal').style.display='none'" style="background:rgba(255,255,255,0.07);border:none;color:#b8c4e0;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;">×</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+          <input id="looseIngSearch" type="text" placeholder="Zoek ingrediënt (bijv. kipfilet, broccoli...)" oninput="filterLooseIng(this.value)"
+            style="flex:1;padding:11px 14px;background:#1a2340;border:1px solid #1e2d52;color:#e8edf8;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none;">
+          <input id="looseIngQty" type="number" value="100" min="1" max="5000" placeholder="gram"
+            style="width:72px;padding:11px;background:#1a2340;border:1px solid #1e2d52;color:#e8edf8;border-radius:10px;font-size:13px;text-align:center;">
+          <span style="font-size:12px;color:#5a6a8a;white-space:nowrap;">g</span>
+        </div>
+        <div id="looseIngList" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+    document.body.appendChild(modal);
+  }
+  document.getElementById('looseIngSearch').value = '';
+  document.getElementById('looseIngQty').value = '100';
+  filterLooseIng('');
+  modal.style.display = 'flex';
+}
+
+function filterLooseIng(q) {
+  const lower = (q || '').toLowerCase().trim();
+  const all = typeof ING_DB !== 'undefined' ? ING_DB : [];
+  const list = lower ? all.filter(i => i.n.toLowerCase().includes(lower)) : all.slice(0, 40);
+  const shown = list.slice(0, 40);
+  document.getElementById('looseIngList').innerHTML = shown.length === 0
+    ? `<div style="font-size:13px;color:#5a6a8a;text-align:center;padding:20px;">Geen resultaten</div>`
+    : shown.map(i => {
+        const safeName = i.n.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        return `<div onclick="addLooseIngToSlot('${safeName}',${i.kcal||0},${i.prot||0},${i.carb||0},${i.fat||0})"
+          style="background:#141c35;border:1px solid #1e2d52;border-radius:10px;padding:11px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:border-color 0.15s;"
+          onmouseover="this.style.borderColor='rgba(251,191,36,0.4)'" onmouseout="this.style.borderColor='#1e2d52'">
+          <div>
+            <div style="font-weight:700;font-size:13px;color:#e8edf8;">${i.n}</div>
+            <div style="font-size:11px;color:#5a6a8a;margin-top:2px;">per 100g: ${i.kcal||0} kcal · E ${i.prot||0}g · C ${i.carb||0}g · V ${i.fat||0}g</div>
+          </div>
+          <span style="color:#fbbf24;font-size:20px;font-weight:800;padding-left:8px;">+</span>
+        </div>`;
+      }).join('');
+}
+
+function addLooseIngToSlot(name, kcal100, prot100, carb100, fat100) {
+  const qty = Math.max(1, parseInt(document.getElementById('looseIngQty').value) || 100);
+  const f = qty / 100;
+  const slot = activeFilter || 'ontbijt';
+  const existing = plan[currentDay][slot];
+  const addedKcal = Math.round(kcal100 * f);
+  const addedProt = Math.round(prot100 * f);
+  const addedCarb = Math.round(carb100 * f);
+  const addedFat  = Math.round(fat100 * f);
+  if (existing) {
+    plan[currentDay][slot] = {
+      ...existing,
+      name: existing.name + ' + ' + name,
+      kcal: (existing.kcal || 0) + addedKcal,
+      prot: (existing.prot || 0) + addedProt,
+      carb: (existing.carb || 0) + addedCarb,
+      fat:  (existing.fat  || 0) + addedFat,
+    };
+  } else {
+    plan[currentDay][slot] = {
+      id: 'ing_' + Date.now(),
+      name: name + ' (' + qty + 'g)',
+      desc: 'Los ingrediënt',
+      kcal: addedKcal, prot: addedProt, carb: addedCarb, fat: addedFat,
+    };
+  }
+  saveToStorage();
+  renderPlan();
+  updateMacros();
+  showToast(name + ' (' + qty + 'g) toegevoegd aan ' + (activeFilter || 'slot') + '!');
+  document.getElementById('looseIngModal').style.display = 'none';
 }
 
 // Start auth check zodra de pagina geladen is
